@@ -3,7 +3,7 @@
 
 
 
-![image-20220804201628052](/home/sky/code/xtop/img/image-20220804201628052.png)
+![image-20220804201628052](./img/image-20220804201628052.png)
 
 
 
