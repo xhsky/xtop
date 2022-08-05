@@ -45,7 +45,7 @@ type Process struct {
 	SEBytesPerS    float64
 	Ppid           int32
 	IsRunning      bool
-	NumFDs         int32
+	NoFile         int
 }
 
 var (
@@ -138,6 +138,7 @@ func getPidRW(pid int32) (float64, float64) {
 	var readBytes, writeBytes float64
 	ioFile := path.Join(procPath, strconv.Itoa(int(pid)), "io")
 	f, err := os.Open(ioFile)
+	defer f.Close()
 	if err == nil {
 		buf := bufio.NewReader(f)
 		for {
@@ -197,6 +198,7 @@ func GetPidStat(pid int32) (string, string, int32, float64, int32, float64, int6
 func GetPidStatus(pid int32) string {
 	statusFile := path.Join(procPath, strconv.Itoa(int(pid)), "status")
 	f, err := os.Open(statusFile)
+	defer f.Close()
 	if err == nil {
 		buf := bufio.NewReader(f)
 		for {
@@ -240,12 +242,24 @@ func GetPidUsername(pid int32) string {
 	}
 }
 
+func getPidNoFile(pid int32) int {
+	fdPath := path.Join(procPath, strconv.Itoa(int(pid)), "fd")
+	var nofile int
+	fds, err := ioutil.ReadDir(fdPath)
+	if err == nil {
+		nofile = len(fds)
+	}
+	return nofile
+}
+
 func GetProcess(pid int32, rate ...*common.Rate) *Process {
 	// rate: readRate, writeRate, receRate, sendRate
 
 	processesMap[pid].MemPercent = processesMap[pid].Mem / float64(memTotal) * 100
 
 	processesMap[pid].Start = getProcessBTime(pid)
+
+	processesMap[pid].NoFile = getPidNoFile(pid)
 
 	num := len(rate)
 	// disk IO

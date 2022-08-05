@@ -22,8 +22,8 @@ func processInit(pid int32) {
 	myPid = pid
 	rate = []*common.Rate{&readRate, &writeRate}
 	processInfo := processes.GetProcess(pid)
-	wProcess.ColumnsImportance = []string{"Status", "Elapsed", "R/S", "W/S"}
-	wProcess.ColumnsMinWidth = []int{6, 8, 8, 8}
+	wProcess.ColumnsImportance = []string{"Status", "Elapsed", "R/S", "W/S", "nofile"}
+	wProcess.ColumnsMinWidth = []int{6, 8, 8, 8, 7}
 	wProcess.Title = processInfo.Command
 	wProcess.RightTitle = strconv.Itoa(int(pid))
 	wProcess.Border = true
@@ -31,7 +31,7 @@ func processInit(pid int32) {
 
 	wProcess.TextStyle = wd.ProcessTextStyle
 	wProcess.Rows = make([][]string, 2)
-	wProcess.Rows[0] = []string{"Status", "Elapsed", "R/S", "W/S"}
+	wProcess.Rows[0] = []string{"Status", "Elapsed", "R/S", "W/S", "nofile"}
 
 	wProcess.StrStyle = wd.ProcessStrStyle
 	wProcess.Widths = []int{20, 10, 0}
@@ -46,7 +46,7 @@ func updateProcess() {
 
 	elapsed := time.Since(processInfo.Start).Round(time.Second)
 	wProcess.Rows[1] = []string{
-		processInfo.Status, elapsed.String(), common.FormatSize(uint64(processInfo.RBytesPerS)), common.FormatSize(uint64(processInfo.WBytesPerS)),
+		processInfo.Status, elapsed.String(), common.FormatSize(uint64(processInfo.RBytesPerS)), common.FormatSize(uint64(processInfo.WBytesPerS)), strconv.Itoa(processInfo.NoFile),
 	}
 
 	wProcess.Str = []string{
