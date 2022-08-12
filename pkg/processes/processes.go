@@ -2,9 +2,11 @@ package processes
 
 import (
 	"bufio"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"os/user"
 	"path"
 	"sort"
@@ -32,7 +34,11 @@ type Process struct {
 	CpuPercent     float64 `tag:"CPU%"`
 	MemPercent     float64 `tag:"Mem%"`
 	Mem            float64 `tag:"Mem%"`
-	Status         string  `tag:"Status"`
+	MemVss         int
+	MemShare       int
+	MemCode        int
+	MemData        int
+	Status         string `tag:"Status"`
 	Cmdline        string
 	start          int64
 	Start          time.Time
@@ -92,10 +98,16 @@ func parseFloat(val string) float64 {
 	return floatVal
 }
 
-func parseInt(val string) int32 {
+func parseInt32(val string) int32 {
 	intVal, _ := strconv.ParseInt(val, 10, 32)
 	return int32(intVal)
 }
+
+func parseInt(val string) int {
+	intVal, _ := strconv.Atoi(val)
+	return intVal
+}
+
 func parseInt64(val string) int64 {
 	intVal, _ := strconv.ParseInt(val, 10, 64)
 	return intVal
@@ -182,12 +194,12 @@ func GetPidStat(pid int32) (string, string, int32, float64, int32, float64, int6
 		pidStatSlice := strings.Split(stat[1], " ")
 
 		state := pidStatSlice[0]
-		ppid := parseInt(pidStatSlice[1])
+		ppid := parseInt32(pidStatSlice[1])
 		uTime := parseFloat(pidStatSlice[11])
 		sTime := parseFloat(pidStatSlice[12])
 		cuTime := parseFloat(pidStatSlice[13])
 		csTime := parseFloat(pidStatSlice[14])
-		threads := parseInt(pidStatSlice[17])
+		threads := parseInt32(pidStatSlice[17])
 		startTime := parseInt64(pidStatSlice[19])
 		rss := parseFloat(pidStatSlice[21]) * float64(pageSize)
 		return comm, state, ppid, uTime + sTime + cuTime + csTime, threads, rss, startTime
@@ -242,14 +254,41 @@ func GetPidUsername(pid int32) string {
 	}
 }
 
+//func getPidNoFile(pid int32) int {
+//	fdPath := path.Join(procPath, strconv.Itoa(int(pid)), "fd")
+//	var nofile int
+//	fds, err := ioutil.ReadDir(fdPath)
+//	if err == nil {
+//		nofile = len(fds)
+//	}
+//	return nofile
+//}
 func getPidNoFile(pid int32) int {
-	fdPath := path.Join(procPath, strconv.Itoa(int(pid)), "fd")
 	var nofile int
-	fds, err := ioutil.ReadDir(fdPath)
+	fdPath := path.Join(procPath, strconv.Itoa(int(pid)), "fd")
+	cmd_info := exec.Command("bash", "-c", fmt.Sprintf("ls -AU %s | wc -l", fdPath))
+	output, err := cmd_info.Output()
 	if err == nil {
-		nofile = len(fds)
+		nofile = parseInt(strings.TrimSpace(string(output)))
+	} else {
+		log.Error(err)
 	}
 	return nofile
+}
+
+func GetPidStatm(pid int32) (int, int, int, int) {
+	statmFile := path.Join(procPath, strconv.Itoa(int(pid)), "statm")
+	pidStatm, err := ioutil.ReadFile(statmFile)
+	if err == nil {
+		statm := strings.Split(string(pidStatm), " ")
+
+		vss := parseInt(statm[0]) * pageSize
+		share := parseInt(statm[2]) * pageSize
+		code := parseInt(statm[3]) * pageSize
+		data := parseInt(statm[5]) * pageSize
+		return vss, share, code, data
+	}
+	return 0, 0, 0, 0
 }
 
 func GetProcess(pid int32, rate ...*common.Rate) *Process {
@@ -260,6 +299,8 @@ func GetProcess(pid int32, rate ...*common.Rate) *Process {
 	processesMap[pid].Start = getProcessBTime(pid)
 
 	processesMap[pid].NoFile = getPidNoFile(pid)
+
+	processesMap[pid].MemVss, processesMap[pid].MemShare, processesMap[pid].MemCode, processesMap[pid].MemData = GetPidStatm(pid)
 
 	num := len(rate)
 	// disk IO
