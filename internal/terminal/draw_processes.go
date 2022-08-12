@@ -26,7 +26,7 @@ func setFilterTitle(title string) {
 
 func processesInit() {
 	wProcesses.ColumnsImportance = []string{"Cmdline", "Threads", "User", "Mem", "CPU%", "Pid", "Program"}
-	wProcesses.ColumnsMinWidth = []int{30, 7, 6, 8, 8, 5, 10}
+	wProcesses.ColumnsMinWidth = []int{30, 7, 6, 8, 8, 7, 10}
 	wProcesses.Title = "Process"
 	wProcesses.BottomTitle = "filter"
 	wProcesses.RightTitle = global.SortKey
