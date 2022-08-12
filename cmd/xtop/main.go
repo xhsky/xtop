@@ -2,6 +2,11 @@ package main
 
 import (
 	"flag"
+	"log"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"runtime"
 
 	//"log"
 	//"os"
@@ -19,17 +24,21 @@ import (
 var (
 	//t uint // 间隔时间, 单位秒
 	d bool // 后台web模式
+	l bool // 后台web模式
 	//s bool // 终端显示
 )
 
 func init() {
 	flag.BoolVar(&d, "d", false, "deamon mode")
+	flag.BoolVar(&l, "l", false, "list debug")
 	//flag.BoolVar(&s, "s", true, "terminal mode")
 	flag.UintVar(&global.T, "t", 1, "interval seconds")
 }
 
 func main() {
-	/*
+	flag.Parse()
+
+	if l == true {
 		runtime.GOMAXPROCS(1)
 		runtime.SetMutexProfileFraction(1)
 		runtime.SetBlockProfileRate(1)
@@ -41,9 +50,7 @@ func main() {
 			}
 			os.Exit(0)
 		}()
-	*/
-
-	flag.Parse()
+	}
 
 	if d == true {
 		web.Show()
