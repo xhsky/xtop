@@ -76,7 +76,7 @@ var ShadowStyle = ui.NewStyle(ui.ColorYellow, ui.ColorBlack, ui.ModifierBold)
 // Process
 var ProcessBorderStyle = ui.NewStyle(SteelBlue1)
 var ProcessTextStyle = ui.NewStyle(LightGreen)
-var ProcessStrStyle = []ui.Style{ui.NewStyle(LightGreen), ui.NewStyle(LightGreen), ui.NewStyle(LightGreen)}
+var ProcessStrStyle = []ui.Style{ui.NewStyle(LightGreen), ui.NewStyle(LightGreen), ui.NewStyle(LightGreen), ui.NewStyle(LightGreen)}
 
 var ProcessCMDStyle = ui.NewStyle(LightGreen, ui.ColorClear, ui.ModifierBold)
 var ProcessCMDTextStyle = ui.NewStyle(LightGreen)

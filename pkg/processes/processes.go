@@ -34,6 +34,10 @@ type Process struct {
 	CpuPercent     float64 `tag:"CPU%"`
 	MemPercent     float64 `tag:"Mem%"`
 	Mem            float64 `tag:"Mem%"`
+	TCPPorts       []int
+	TCP6Ports      []int
+	UDPPorts       []int
+	UDP6Ports      []int
 	MemVss         int
 	MemShare       int
 	MemCode        int
@@ -111,6 +115,11 @@ func parseInt(val string) int {
 func parseInt64(val string) int64 {
 	intVal, _ := strconv.ParseInt(val, 10, 64)
 	return intVal
+}
+
+func HexToDec(val string) int {
+	intVal, _ := strconv.ParseUint(val, 16, 64)
+	return int(intVal)
 }
 
 func getCPUTotalTime() float64 {
@@ -276,6 +285,68 @@ func getPidNoFile(pid int32) int {
 	return nofile
 }
 
+func doNetFile(file string, t string) map[string]int {
+	f, err := os.Open(file)
+	defer f.Close()
+	socketMap := make(map[string]int, 500)
+	if err == nil {
+		buf := bufio.NewReader(f)
+		for {
+			line, err := buf.ReadString('\n')
+			if err == nil {
+				socketString := strings.Fields(line)
+				if (socketString[3] == "0A" && t == "TCP") || (socketString[3] == "07" && t == "UDP") {
+					socketMap[socketString[9]] = HexToDec(strings.Split(socketString[1], ":")[1])
+				}
+			} else if err == io.EOF {
+				break
+			} else {
+				log.Error(err)
+				break
+			}
+		}
+	} else {
+		log.Error(err)
+	}
+	return socketMap
+}
+
+func doNetPort(socket map[string]int, inode string, ports *[]int) {
+	elem, ok := socket[inode]
+	if ok == true {
+		*ports = append(*ports, elem)
+	}
+}
+
+func getPidPorts(pid int32) ([]int, []int, []int, []int) {
+	var tcpPorts, tcp6Ports, udpPorts, udp6Ports []int
+	fdPath := path.Join(procPath, strconv.Itoa(int(pid)), "fd")
+	fi, err := ioutil.ReadDir(fdPath)
+	if err != nil {
+		log.Error(pid, err)
+	}
+
+	tcpSocket := doNetFile("/proc/net/tcp", "TCP")
+	tcp6Socket := doNetFile("/proc/net/tcp6", "TCP")
+	udpSocket := doNetFile("/proc/net/udp", "UDP")
+	udp6Socket := doNetFile("/proc/net/udp6", "UDP")
+
+	for _, file := range fi {
+		fd := path.Join(fdPath, file.Name())
+		lname, err := os.Readlink(fd)
+		if err == nil && strings.HasPrefix(lname, "socket:[") {
+			inodeString := strings.Split(lname, "[")[1]
+			inode := inodeString[0 : len(inodeString)-1]
+			//for _, socketMap := range []map[string]int{tcpSocket, tcp6Socket, udpSocket, udp6Socket} {
+			doNetPort(tcpSocket, inode, &tcpPorts)
+			doNetPort(tcp6Socket, inode, &tcp6Ports)
+			doNetPort(udpSocket, inode, &udpPorts)
+			doNetPort(udp6Socket, inode, &udp6Ports)
+		}
+	}
+	return tcpPorts, tcp6Ports, udpPorts, udp6Ports
+}
+
 func GetPidStatm(pid int32) (int, int, int, int) {
 	statmFile := path.Join(procPath, strconv.Itoa(int(pid)), "statm")
 	pidStatm, err := ioutil.ReadFile(statmFile)
@@ -299,6 +370,8 @@ func GetProcess(pid int32, rate ...*common.Rate) *Process {
 	processesMap[pid].Start = getProcessBTime(pid)
 
 	processesMap[pid].NoFile = getPidNoFile(pid)
+
+	processesMap[pid].TCPPorts, processesMap[pid].TCP6Ports, processesMap[pid].UDPPorts, processesMap[pid].UDP6Ports = getPidPorts(pid)
 
 	processesMap[pid].MemVss, processesMap[pid].MemShare, processesMap[pid].MemCode, processesMap[pid].MemData = GetPidStatm(pid)
 

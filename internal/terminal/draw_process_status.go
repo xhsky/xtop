@@ -34,8 +34,8 @@ func processInit(pid int32) {
 	wProcess.Rows[0] = []string{"Status", "Elapsed", "R/S", "W/S", "nofile"}
 
 	wProcess.StrStyle = wd.ProcessStrStyle
-	wProcess.Widths = []int{20, 10, 68}
-	wProcess.Align = []string{"left", "right", "center"}
+	wProcess.Widths = []int{20, 10, 20, 68}
+	wProcess.Align = []string{"left", "right", "center", "center"}
 
 	wProcess.CMDStyle = wd.ProcessCMDStyle
 	wProcess.CMDTextStyle = wd.ProcessCMDTextStyle
@@ -52,14 +52,15 @@ func updateProcess() {
 	wProcess.Str = []string{
 		fmt.Sprintf("Mem: %s(%.2f%%)", common.FormatSize(uint64(processInfo.Mem)), processInfo.MemPercent),
 		fmt.Sprintf("CPU: %.2f%%", processInfo.CpuPercent),
+		fmt.Sprintf("Ports: %v, %v, %v, %v", processInfo.TCPPorts, processInfo.TCP6Ports, processInfo.UDPPorts, processInfo.UDP6Ports),
 		fmt.Sprintf("MemInfo: VSS(%s) Share(%s) Code(%s) Data(%s)",
 			common.FormatSize(uint64(processInfo.MemVss)),
 			common.FormatSize(uint64(processInfo.MemShare)),
 			common.FormatSize(uint64(processInfo.MemCode)),
 			common.FormatSize(uint64(processInfo.MemData))),
 	}
-	wProcess.FormattedText.RowY = []int{3, 3, 4}
+	wProcess.FormattedText.RowY = []int{3, 3, 4, 5}
 
 	wProcess.CMDText = processInfo.Cmdline
-	wProcess.CMD.RowY = 6
+	wProcess.CMD.RowY = 7
 }
