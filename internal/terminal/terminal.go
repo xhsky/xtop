@@ -117,7 +117,7 @@ func Show() {
 	for {
 		select {
 		case e := <-uiEvents:
-			if previousKey == "f" {
+			if previousKey == "f" || previousKey == "/" {
 				global.Filter = true
 				byteEvent := []rune(e.ID)[0]
 				if unicode.IsLetter(byteEvent) == true || unicode.IsNumber(byteEvent) == true || byteEvent == '_' {
@@ -154,7 +154,7 @@ func Show() {
 					wProcesses.ScrollTop()
 					previousKey = ""
 				}
-			case "f":
+			case "f", "/":
 				global.FilterKey = strings.Join(filterStr, "")
 				if filterComplete == true {
 					filterTitle = fmt.Sprintf("f: %s Del", global.FilterKey)
@@ -163,7 +163,7 @@ func Show() {
 					filterTitle = fmt.Sprintf("f: %s ↲", global.FilterKey)
 				}
 				setFilterTitle(filterTitle)
-			case "<Delete>":
+			case "<Delete>", "<Escape>":
 				setFilterTitle("filter")
 				global.Filter = false
 				filterStr = nil
