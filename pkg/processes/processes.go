@@ -324,26 +324,31 @@ func getPidPorts(pid int32) ([]int, []int, []int, []int) {
 	fi, err := ioutil.ReadDir(fdPath)
 	if err != nil {
 		log.Error(pid, err)
-	}
+	} else {
+		tcpSocket := doNetFile("/proc/net/tcp", "TCP")
+		tcp6Socket := doNetFile("/proc/net/tcp6", "TCP")
+		udpSocket := doNetFile("/proc/net/udp", "UDP")
+		udp6Socket := doNetFile("/proc/net/udp6", "UDP")
 
-	tcpSocket := doNetFile("/proc/net/tcp", "TCP")
-	tcp6Socket := doNetFile("/proc/net/tcp6", "TCP")
-	udpSocket := doNetFile("/proc/net/udp", "UDP")
-	udp6Socket := doNetFile("/proc/net/udp6", "UDP")
-
-	for _, file := range fi {
-		fd := path.Join(fdPath, file.Name())
-		lname, err := os.Readlink(fd)
-		if err == nil && strings.HasPrefix(lname, "socket:[") {
-			inodeString := strings.Split(lname, "[")[1]
-			inode := inodeString[0 : len(inodeString)-1]
-			//for _, socketMap := range []map[string]int{tcpSocket, tcp6Socket, udpSocket, udp6Socket} {
-			doNetPort(tcpSocket, inode, &tcpPorts)
-			doNetPort(tcp6Socket, inode, &tcp6Ports)
-			doNetPort(udpSocket, inode, &udpPorts)
-			doNetPort(udp6Socket, inode, &udp6Ports)
+		for _, file := range fi {
+			fd := path.Join(fdPath, file.Name())
+			lname, err := os.Readlink(fd)
+			if err != nil {
+				log.Error(pid, err)
+				break
+			}
+			if err == nil && strings.HasPrefix(lname, "socket:[") {
+				inodeString := strings.Split(lname, "[")[1]
+				inode := inodeString[0 : len(inodeString)-1]
+				//for _, socketMap := range []map[string]int{tcpSocket, tcp6Socket, udpSocket, udp6Socket} {
+				doNetPort(tcpSocket, inode, &tcpPorts)
+				doNetPort(tcp6Socket, inode, &tcp6Ports)
+				doNetPort(udpSocket, inode, &udpPorts)
+				doNetPort(udp6Socket, inode, &udp6Ports)
+			}
 		}
 	}
+
 	return tcpPorts, tcp6Ports, udpPorts, udp6Ports
 }
 
